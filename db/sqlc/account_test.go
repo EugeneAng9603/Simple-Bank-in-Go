@@ -7,16 +7,18 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/techschool/simplebank/db/util"
+	"github.com/techschool/simplebank/util"
 )
 
 // Each test function should create its own account records, making sure they are independent from each other,
 // we dont want a test case to affect the result of another
 
 func createRandomAccount(t *testing.T) Account { //remember to return Account model
+	// after having Users table, we need to link these test acc to user
+	user := createRandomUser(t)
 	// we can create a obj instance manually, e.g. tom, 1000, USD, or use util.Random that we created
 	arg := CreateAccountParams{
-		Username: util.RandomUsername(),
+		Username: user.UsernameOfUser,
 		Balance:  util.RandomMoney(),
 		Currency: util.RandomCurrency(),
 	}

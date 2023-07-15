@@ -10,14 +10,19 @@ import (
 // Because each *Queries only do 1 operations, we need a transaction struct, which is called composition
 // Extend struct using composition instead of inheritance, so all functionality of Queries can be used here
 // and can support transaction by adding more functions to Store struct
-type Store struct {
+type Store interface {
+	Querier
+	TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error)
+}
+
+type SQLStore struct {
 	*Queries
 	db *sql.DB
 }
 
 // create a new Store
-func NewStore(db *sql.DB) *Store {
-	return &Store{
+func NewStore(db *sql.DB) Store {
+	return &SQLStore{
 		db:      db,
 		Queries: New(db),
 	}
@@ -26,7 +31,7 @@ func NewStore(db *sql.DB) *Store {
 // execute a function within a dB transaction
 // execTC takes a ctx and callback fn as input, start new DB tsx, create new Queries obj with that tsx,
 // call the callback fn with created Queries, then commit/rollback the tsx, based on the error returned by execTC
-func (store *Store) execTC(ctx context.Context, fn func(*Queries) error) error {
+func (store *SQLStore) execTC(ctx context.Context, fn func(*Queries) error) error {
 	tx, err := store.db.BeginTx(ctx, nil) // TxOptions to set Isolation level, for beginning can use nil
 	if err != nil {
 		return err
@@ -65,7 +70,7 @@ type TransferTxResult struct {
 // creates a transfer record,
 // add account entries,
 // update accounts' balance within single DB TX
-func (store *Store) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
+func (store *SQLStore) TransferTx(ctx context.Context, arg TransferTxParams) (TransferTxResult, error) {
 	var result TransferTxResult
 
 	err := store.execTC(ctx, func(q *Queries) error {
